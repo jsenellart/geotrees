@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Urban Tree Map</title>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <!-- Leaflet CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <div id="map"></div>
+
+    <!-- Leaflet JS -->
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+
+    <script>
+        const map = L.map('map').setView([48.6984, 2.1870], 15); // Default to Orsay
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; OpenStreetMap contributors'
+        }).addTo(map);
+
+        // Add example tree marker with custom icon
+        const treeIcon = L.divIcon({
+            html: '🌳',
+            iconSize: [20, 20],
+            className: 'tree-icon'
+        });
+        
+        L.marker([48.697751, 2.180786], {icon: treeIcon}).addTo(map)
+            .bindPopup('<strong>Acacia</strong><br>Dans notre jardin');
+
+        // Fetch tree data from your API
+        fetch('/api/trees/')
+            .then(response => response.json())
+            .then(data => {
+                L.geoJSON(data, {
+                    onEachFeature: function (feature, layer) {
+                        const props = feature.properties;
+                        layer.bindPopup(`
+                            <strong>Tree ID:</strong> ${props.tree_id}<br>
+                            <strong>Public Access:</strong> ${props.public_accessible}
+                        `);
+                    }
+                }).addTo(map);
+            });
+    </script>
+</body>
+</html>
