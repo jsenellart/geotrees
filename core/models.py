@@ -1,15 +1,12 @@
 from django.contrib.gis.db import models as gis_models
 from django.db import models
+from django.contrib.auth.models import User
 import uuid
 
-class User(models.Model):
-    user_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    name = models.CharField(max_length=255)
-    email = models.EmailField(unique=True)
-    password_hash = models.TextField()
-    role = models.CharField(max_length=50, choices=[('citizen', 'Citizen'), ('admin', 'Admin')])
+class UserProfile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='profile')
+    role = models.CharField(max_length=50, choices=[('citizen', 'Citizen'), ('admin', 'Admin')], default='citizen')
     language = models.CharField(max_length=10, default='en')
-    created_at = models.DateTimeField(auto_now_add=True)
 
 class Tree(models.Model):
     tree_id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
