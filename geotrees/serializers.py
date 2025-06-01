@@ -4,7 +4,7 @@ from core.models import Tree
 
 class TreeGeoSerializer(GeoFeatureModelSerializer):
     created_by_username = serializers.CharField(source='created_by.username', read_only=True)
-    
+
     class Meta:
         model = Tree
         geo_field = "location"
