@@ -59,12 +59,12 @@ MIDDLEWARE = [
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
 
-ROOT_URLCONF = 'geotrees.urls'
+ROOT_URLCONF = 'core.urls'
 
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [BASE_DIR/'geotrees'/'templates'],
+        'DIRS': [BASE_DIR/'core'/'templates'],
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [
@@ -76,7 +76,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'geotrees.wsgi.application'
+WSGI_APPLICATION = 'config.wsgi.application'
 
 
 # Database
@@ -140,10 +140,10 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
 
-LOCAL_SETTINGS = os.path.join(BASE_DIR,'geotrees/', "local_settings.py")
+LOCAL_SETTINGS = os.path.join(BASE_DIR,'config/', "local_settings.py")
 
 if os.path.isfile(LOCAL_SETTINGS):
      try:
-         from geotrees.local_settings import *
+         from config.local_settings import *
      except ImportError:
          pass
