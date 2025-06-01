@@ -29,6 +29,12 @@
         .auth-section a:hover {
             text-decoration: underline;
         }
+        .moving-tree {
+            opacity: 0.7;
+            transform: scale(1.2);
+            border: 2px dashed #f39c12;
+            border-radius: 50%;
+        }
     </style>
 </head>
 <body>
@@ -57,7 +63,8 @@
         const map = L.map('map').setView([48.6984, 2.1870], 15); // Default to Orsay
 
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-            attribution: '&copy; OpenStreetMap contributors'
+            attribution: '&copy; OpenStreetMap contributors',
+            maxZoom: 20
         }).addTo(map);
 
         // Add example tree marker with custom icon
@@ -81,9 +88,12 @@
                     treeLayer.clearLayers();
                     L.geoJSON(data, {
                         pointToLayer: function (feature, latlng) {
-                            return L.marker(latlng, {icon: treeIcon});
+                            const marker = L.marker(latlng, {icon: treeIcon, draggable: false});
+                            marker.treeId = feature.id; // Store tree ID for later reference
+                            return marker;
                         },
                         onEachFeature: function (feature, layer) {
+                            layer.treeId = feature.id; // Store tree ID on the layer
                             const props = feature.properties;
                             let popupContent = `
                                 <strong>Tree ID:</strong> ${feature.id}<br>
@@ -92,10 +102,23 @@
                                 <strong>Created:</strong> ${new Date(props.created_at).toLocaleDateString()}
                             `;
                             
-                            // Add delete button if user owns this tree
+                            // Add move and delete buttons if user owns this tree
                             {% if user.is_authenticated %}
                             if (props.created_by === {{ user.id }}) {
+                                const currentZoom = map.getZoom();
+                                const adjustButtonStyle = currentZoom >= MIN_ZOOM_FOR_ADD 
+                                    ? "background-color: #f39c12; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer; margin-right: 5px;"
+                                    : "background-color: #95a5a6; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: not-allowed; margin-right: 5px;";
+                                const adjustButtonText = currentZoom >= MIN_ZOOM_FOR_ADD 
+                                    ? "Adjust Position" 
+                                    : `Zoom to ${MIN_ZOOM_FOR_ADD}+ to adjust`;
+                                const adjustButtonDisabled = currentZoom < MIN_ZOOM_FOR_ADD ? "disabled" : "";
+                                
                                 popupContent += `<br><br>
+                                    <button onclick="enableAdjustPosition('${feature.id}')" 
+                                            style="${adjustButtonStyle}" ${adjustButtonDisabled}>
+                                        ${adjustButtonText}
+                                    </button>
                                     <button onclick="deleteTree('${feature.id}')" 
                                             style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
                                         Delete Tree
@@ -116,7 +139,7 @@
         // Add Tree functionality
         let addTreeMode = false;
         const addTreeBtn = document.getElementById('addTreeBtn');
-        const MIN_ZOOM_FOR_ADD = 17; // Minimum zoom level to add trees
+        const MIN_ZOOM_FOR_ADD = 18; // Minimum zoom level to add trees
         
         function updateAddTreeButton() {
             if (!addTreeBtn) return;
@@ -202,6 +225,179 @@
                     });
                 }
             });
+        }
+
+        // Adjust position functionality
+        let adjustingTreeId = null;
+        let adjustingMarker = null;
+        let originalPosition = null;
+        const MAX_ADJUST_DISTANCE = 25; // meters
+
+        // Helper function to calculate distance between two lat/lng points in meters
+        function calculateDistance(lat1, lng1, lat2, lng2) {
+            const R = 6371000; // Earth's radius in meters
+            const dLat = (lat2 - lat1) * Math.PI / 180;
+            const dLng = (lng2 - lng1) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                    Math.sin(dLng/2) * Math.sin(dLng/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        function enableAdjustPosition(treeId) {
+
+            // Find the marker for this tree
+            let targetLayer = null;
+            
+            function findLayerRecursive(layerGroup) {
+                layerGroup.eachLayer(function(layer) {
+                    if (layer.treeId == treeId) {
+                        targetLayer = layer;
+                        return;
+                    }
+                    // If this layer has sublayers, search them too
+                    if (layer.eachLayer && typeof layer.eachLayer === 'function') {
+                        findLayerRecursive(layer);
+                    }
+                });
+            }
+            
+            findLayerRecursive(treeLayer);
+            
+            if (targetLayer) {
+                    
+                // Store original position and tree ID
+                adjustingTreeId = treeId;
+                originalPosition = targetLayer.getLatLng();
+                
+                // Close popup first
+                targetLayer.closePopup();
+                
+                // Remove the old marker from its parent layer
+                let parentLayer = null;
+                treeLayer.eachLayer(function(layer) {
+                    if (layer.eachLayer) {
+                        layer.eachLayer(function(sublayer) {
+                            if (sublayer.treeId == treeId) {
+                                parentLayer = layer;
+                            }
+                        });
+                    }
+                });
+                
+                if (parentLayer) {
+                    parentLayer.removeLayer(targetLayer);
+                }
+                
+                // Create a new draggable marker at the same position
+                adjustingMarker = L.marker(originalPosition, {
+                    icon: L.divIcon({
+                        html: '🌳',
+                        iconSize: [20, 20],
+                        className: 'tree-icon moving-tree'
+                    }),
+                    draggable: true
+                }).addTo(map);
+                
+                // Change cursor
+                map.getContainer().style.cursor = 'move';
+                
+                // Add temporary instruction
+                adjustingMarker.bindTooltip(`Drag to adjust position (max ${MAX_ADJUST_DISTANCE}m)`, {
+                    permanent: true,
+                    direction: 'bottom',
+                    offset: [0, 20]
+                }).openTooltip();
+                
+                // Handle drag
+                adjustingMarker.on('drag', function(e) {
+                    const currentPos = e.target.getLatLng();
+                    const distance = calculateDistance(
+                        originalPosition.lat, originalPosition.lng,
+                        currentPos.lat, currentPos.lng
+                    );
+                    
+                    if (distance > MAX_ADJUST_DISTANCE) {
+                        // Reset to original position if too far
+                        e.target.setLatLng(originalPosition);
+                    }
+                });
+                
+                // Handle drag end
+                adjustingMarker.on('dragend', function(e) {
+                    const newLatLng = e.target.getLatLng();
+                    const distance = calculateDistance(
+                        originalPosition.lat, originalPosition.lng,
+                        newLatLng.lat, newLatLng.lng
+                    );
+                    
+                    if (distance <= MAX_ADJUST_DISTANCE) {
+                        saveTreePosition(treeId, newLatLng);
+                    } else {
+                        cancelAdjustPosition();
+                        alert(`Position adjustment limited to ${MAX_ADJUST_DISTANCE} meters. Moved: ${distance.toFixed(1)}m`);
+                    }
+                });
+                
+                // Handle click to cancel
+                adjustingMarker.on('click', function(e) {
+                    e.originalEvent.stopPropagation();
+                    cancelAdjustPosition();
+                });
+                
+                // Also handle map click to cancel
+                map.once('click', function(e) {
+                    if (adjustingMarker) {
+                        cancelAdjustPosition();
+                    }
+                });
+            }
+        }
+
+        function saveTreePosition(treeId, newLatLng) {
+            fetch(`/api/trees/${treeId}/`, {
+                method: 'PATCH',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                },
+                body: JSON.stringify({
+                    location: {
+                        type: 'Point',
+                        coordinates: [newLatLng.lng, newLatLng.lat]
+                    }
+                })
+            })
+            .then(response => {
+                if (response.ok) {
+                    cancelAdjustPosition();
+                    loadTrees(); // Reload to show updated position
+                } else if (response.status === 403) {
+                    alert('You can only adjust your own trees.');
+                    cancelAdjustPosition();
+                } else {
+                    alert('Error adjusting tree position. Please try again.');
+                    cancelAdjustPosition();
+                }
+            })
+            .catch(error => {
+                console.error('Error adjusting tree position:', error);
+                alert('Error adjusting tree position. Please try again.');
+                cancelAdjustPosition();
+            });
+        }
+
+        function cancelAdjustPosition() {
+            if (adjustingMarker) {
+                map.removeLayer(adjustingMarker);
+                map.off('click'); // Remove the cancel click handler
+            }
+            map.getContainer().style.cursor = '';
+            adjustingTreeId = null;
+            adjustingMarker = null;
+            originalPosition = null;
+            loadTrees(); // Reload to reset everything
         }
 
         // Delete tree function
