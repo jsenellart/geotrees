@@ -139,3 +139,11 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # Authentication settings
 LOGIN_REDIRECT_URL = '/'
 LOGOUT_REDIRECT_URL = '/'
+
+LOCAL_SETTINGS = os.path.join(BASE_DIR,'geotrees/', "local_settings.py")
+
+if os.path.isfile(LOCAL_SETTINGS):
+     try:
+         from geotrees.local_settings import *
+     except ImportError:
+         pass
