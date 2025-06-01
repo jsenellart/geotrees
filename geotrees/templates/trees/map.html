@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Urban Tree Map</title>
+    <title>GeoTree Map</title>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
@@ -9,12 +9,43 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
     <style>
         #map {
-            height: 100vh;
+            height: calc(100vh - 60px);
             width: 100%;
+        }
+        .topbar {
+            height: 60px;
+            background-color: #2c3e50;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0 20px;
+        }
+        .auth-section a {
+            color: white;
+            text-decoration: none;
+            margin-left: 10px;
+        }
+        .auth-section a:hover {
+            text-decoration: underline;
         }
     </style>
 </head>
 <body>
+    <div class="topbar">
+        <h1>GeoTree Map</h1>
+        <div class="auth-section">
+            {% if user.is_authenticated %}
+                <span>Welcome, {{ user.username }}!</span>
+                <form method="post" action="{% url 'logout' %}" style="display: inline;">
+                    {% csrf_token %}
+                    <button type="submit" style="background: none; border: none; color: white; text-decoration: underline; cursor: pointer; font-size: inherit;">Logout</button>
+                </form>
+            {% else %}
+                <a href="{% url 'login' %}">Sign In</a>
+            {% endif %}
+        </div>
+    </div>
     <div id="map"></div>
 
     <!-- Leaflet JS -->
