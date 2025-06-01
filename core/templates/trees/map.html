@@ -31,7 +31,12 @@
         </div>
     </div>
 
-    <div id="map"></div>
+    <div id="map">
+        <div class="gps-controls">
+            <button id="gpsToggleBtn" class="gps-btn" title="Toggle GPS tracking">📍</button>
+            <button id="centerBtn" class="gps-btn center-btn" title="Center on my location" style="display: none;">🎯</button>
+        </div>
+    </div>
 
     <!-- Expose Django values to JS: -->
     <script>

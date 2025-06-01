@@ -377,4 +377,116 @@
         alert('Error deleting tree. Please try again.');
       });
   };
+
+  // ------------------------------------------------------------
+  //  GPS Location Functionality
+  // ------------------------------------------------------------
+  let gpsMode = false;
+  let userLocationMarker = null;
+  let watchPositionId = null;
+  let userPosition = null;
+  
+  const gpsToggleBtn = document.getElementById('gpsToggleBtn');
+  const centerBtn = document.getElementById('centerBtn');
+
+  // Create user location icon
+  const userLocationIcon = L.divIcon({
+    html: '🔵',
+    iconSize: [12, 12],
+    className: 'user-location'
+  });
+
+  function startGPS() {
+    if (!navigator.geolocation) {
+      alert('Geolocation is not supported by this browser.');
+      return;
+    }
+
+    gpsMode = true;
+    gpsToggleBtn.classList.add('active');
+    centerBtn.style.display = 'block';
+
+    const options = {
+      enableHighAccuracy: true,
+      timeout: 10000,
+      maximumAge: 60000
+    };
+
+    watchPositionId = navigator.geolocation.watchPosition(
+      (position) => {
+        const lat = position.coords.latitude;
+        const lng = position.coords.longitude;
+        userPosition = [lat, lng];
+
+        // Remove existing marker
+        if (userLocationMarker) {
+          map.removeLayer(userLocationMarker);
+        }
+
+        // Add new marker at current position
+        userLocationMarker = L.marker([lat, lng], {
+          icon: userLocationIcon,
+          zIndexOffset: 1000
+        }).addTo(map);
+
+        userLocationMarker.bindPopup('Your location');
+      },
+      (error) => {
+        console.error('GPS Error:', error);
+        switch(error.code) {
+          case error.PERMISSION_DENIED:
+            alert('GPS access denied. Please enable location permissions.');
+            break;
+          case error.POSITION_UNAVAILABLE:
+            alert('GPS position unavailable.');
+            break;
+          case error.TIMEOUT:
+            alert('GPS request timed out.');
+            break;
+        }
+        stopGPS();
+      },
+      options
+    );
+  }
+
+  function stopGPS() {
+    gpsMode = false;
+    gpsToggleBtn.classList.remove('active');
+    centerBtn.style.display = 'none';
+
+    if (watchPositionId) {
+      navigator.geolocation.clearWatch(watchPositionId);
+      watchPositionId = null;
+    }
+
+    if (userLocationMarker) {
+      map.removeLayer(userLocationMarker);
+      userLocationMarker = null;
+    }
+
+    userPosition = null;
+  }
+
+  function centerOnUser() {
+    if (userPosition) {
+      map.setView(userPosition, 18);
+    }
+  }
+
+  // Event listeners
+  if (gpsToggleBtn) {
+    gpsToggleBtn.addEventListener('click', () => {
+      if (gpsMode) {
+        stopGPS();
+      } else {
+        startGPS();
+      }
+    });
+  }
+
+  if (centerBtn) {
+    centerBtn.addEventListener('click', centerOnUser);
+  }
+
 })();
