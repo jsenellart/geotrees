@@ -9,3 +9,4 @@ class TreeGeoSerializer(GeoFeatureModelSerializer):
         model = Tree
         geo_field = "location"
         fields = ("tree_id", "public_accessible", "created_at", "created_by", "created_by_username")
+        read_only_fields = ("tree_id", "created_at", "created_by", "created_by_username")

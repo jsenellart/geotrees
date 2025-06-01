@@ -48,6 +48,7 @@
         </div>
     </div>
     <div id="map"></div>
+    {% csrf_token %}
 
     <!-- Leaflet JS -->
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
@@ -115,7 +116,7 @@
         // Add Tree functionality
         let addTreeMode = false;
         const addTreeBtn = document.getElementById('addTreeBtn');
-        const MIN_ZOOM_FOR_ADD = 16; // Minimum zoom level to add trees
+        const MIN_ZOOM_FOR_ADD = 17; // Minimum zoom level to add trees
         
         function updateAddTreeButton() {
             if (!addTreeBtn) return;
