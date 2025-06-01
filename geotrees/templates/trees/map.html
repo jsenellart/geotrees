@@ -33,24 +33,37 @@
             iconSize: [20, 20],
             className: 'tree-icon'
         });
-        
-        L.marker([48.697751, 2.180786], {icon: treeIcon}).addTo(map)
-            .bindPopup('<strong>Acacia</strong><br>Dans notre jardin');
 
-        // Fetch tree data from your API
-        fetch('/api/trees/')
-            .then(response => response.json())
-            .then(data => {
-                L.geoJSON(data, {
-                    onEachFeature: function (feature, layer) {
-                        const props = feature.properties;
-                        layer.bindPopup(`
-                            <strong>Tree ID:</strong> ${props.tree_id}<br>
-                            <strong>Public Access:</strong> ${props.public_accessible}
-                        `);
-                    }
-                }).addTo(map);
+        let treeLayer = L.layerGroup().addTo(map);
+
+        function loadTrees() {
+            const bounds = map.getBounds();
+            const params = new URLSearchParams({
+                bbox: `${bounds.getWest()},${bounds.getSouth()},${bounds.getEast()},${bounds.getNorth()}`
             });
+            
+            fetch(`/api/trees/?${params}`)
+                .then(response => response.json())
+                .then(data => {
+                    treeLayer.clearLayers();
+                    L.geoJSON(data, {
+                        pointToLayer: function (feature, latlng) {
+                            return L.marker(latlng, {icon: treeIcon});
+                        },
+                        onEachFeature: function (feature, layer) {
+                            const props = feature.properties;
+                            layer.bindPopup(`
+                                <strong>Tree ID:</strong> ${feature.id}<br>
+                                <strong>Public Access:</strong> ${props.public_accessible}
+                            `);
+                        }
+                    }).addTo(treeLayer);
+                });
+        }
+
+        // Load trees on map move/zoom
+        map.on('moveend', loadTrees);
+        loadTrees(); // Initial load
     </script>
 </body>
 </html>
