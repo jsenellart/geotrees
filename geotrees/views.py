@@ -7,7 +7,7 @@ from django.shortcuts import render
 def map_view(request):
     return render(request, 'trees/map.html')
 
-class TreeGeoViewSet(viewsets.ReadOnlyModelViewSet):
+class TreeGeoViewSet(viewsets.ModelViewSet):
     queryset = Tree.objects.all()
     serializer_class = TreeGeoSerializer
     
@@ -24,3 +24,15 @@ class TreeGeoViewSet(viewsets.ReadOnlyModelViewSet):
                 pass
                 
         return queryset
+    
+    def perform_create(self, serializer):
+        serializer.save(created_by=self.request.user)
+    
+    def destroy(self, request, *args, **kwargs):
+        tree = self.get_object()
+        if tree.created_by != request.user:
+            from rest_framework.response import Response
+            from rest_framework import status
+            return Response({'error': 'You can only delete your own trees'}, 
+                          status=status.HTTP_403_FORBIDDEN)
+        return super().destroy(request, *args, **kwargs)

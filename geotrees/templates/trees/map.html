@@ -36,6 +36,7 @@
         <h1>GeoTree Map</h1>
         <div class="auth-section">
             {% if user.is_authenticated %}
+                <button id="addTreeBtn" style="background-color: #27ae60; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-right: 15px;">Add Tree</button>
                 <span>Welcome, {{ user.username }}!</span>
                 <form method="post" action="{% url 'logout' %}" style="display: inline;">
                     {% csrf_token %}
@@ -83,10 +84,25 @@
                         },
                         onEachFeature: function (feature, layer) {
                             const props = feature.properties;
-                            layer.bindPopup(`
+                            let popupContent = `
                                 <strong>Tree ID:</strong> ${feature.id}<br>
-                                <strong>Public Access:</strong> ${props.public_accessible}
-                            `);
+                                <strong>Public Access:</strong> ${props.public_accessible}<br>
+                                <strong>Created by:</strong> ${props.created_by_username}<br>
+                                <strong>Created:</strong> ${new Date(props.created_at).toLocaleDateString()}
+                            `;
+                            
+                            // Add delete button if user owns this tree
+                            {% if user.is_authenticated %}
+                            if (props.created_by === {{ user.id }}) {
+                                popupContent += `<br><br>
+                                    <button onclick="deleteTree('${feature.id}')" 
+                                            style="background-color: #e74c3c; color: white; border: none; padding: 5px 10px; border-radius: 3px; cursor: pointer;">
+                                        Delete Tree
+                                    </button>`;
+                            }
+                            {% endif %}
+                            
+                            layer.bindPopup(popupContent);
                         }
                     }).addTo(treeLayer);
                 });
@@ -95,6 +111,124 @@
         // Load trees on map move/zoom
         map.on('moveend', loadTrees);
         loadTrees(); // Initial load
+
+        // Add Tree functionality
+        let addTreeMode = false;
+        const addTreeBtn = document.getElementById('addTreeBtn');
+        const MIN_ZOOM_FOR_ADD = 16; // Minimum zoom level to add trees
+        
+        function updateAddTreeButton() {
+            if (!addTreeBtn) return;
+            
+            const currentZoom = map.getZoom();
+            if (currentZoom < MIN_ZOOM_FOR_ADD) {
+                addTreeBtn.disabled = true;
+                addTreeBtn.textContent = `Zoom in to add trees (${MIN_ZOOM_FOR_ADD}+)`;
+                addTreeBtn.style.backgroundColor = '#95a5a6';
+                addTreeBtn.style.cursor = 'not-allowed';
+                // Exit add mode if active
+                if (addTreeMode) {
+                    addTreeMode = false;
+                    map.getContainer().style.cursor = '';
+                }
+            } else {
+                addTreeBtn.disabled = false;
+                addTreeBtn.style.cursor = 'pointer';
+                if (addTreeMode) {
+                    addTreeBtn.textContent = 'Cancel Add';
+                    addTreeBtn.style.backgroundColor = '#e74c3c';
+                } else {
+                    addTreeBtn.textContent = 'Add Tree';
+                    addTreeBtn.style.backgroundColor = '#27ae60';
+                }
+            }
+        }
+        
+        if (addTreeBtn) {
+            addTreeBtn.addEventListener('click', function() {
+                if (addTreeBtn.disabled) return;
+                
+                addTreeMode = !addTreeMode;
+                if (addTreeMode) {
+                    addTreeBtn.textContent = 'Cancel Add';
+                    addTreeBtn.style.backgroundColor = '#e74c3c';
+                    map.getContainer().style.cursor = 'crosshair';
+                } else {
+                    addTreeBtn.textContent = 'Add Tree';
+                    addTreeBtn.style.backgroundColor = '#27ae60';
+                    map.getContainer().style.cursor = '';
+                }
+            });
+
+            // Update button state on zoom
+            map.on('zoomend', updateAddTreeButton);
+            updateAddTreeButton(); // Initial check
+
+            map.on('click', function(e) {
+                if (addTreeMode) {
+                    const lat = e.latlng.lat;
+                    const lng = e.latlng.lng;
+                    
+                    // Create new tree via API
+                    fetch('/api/trees/', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                        },
+                        body: JSON.stringify({
+                            location: {
+                                type: 'Point',
+                                coordinates: [lng, lat]
+                            },
+                            public_accessible: true
+                        })
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.id) {
+                            // Exit add mode and reload trees
+                            addTreeMode = false;
+                            addTreeBtn.textContent = 'Add Tree';
+                            addTreeBtn.style.backgroundColor = '#27ae60';
+                            map.getContainer().style.cursor = '';
+                            loadTrees();
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error adding tree:', error);
+                        alert('Error adding tree. Please try again.');
+                    });
+                }
+            });
+        }
+
+        // Delete tree function
+        function deleteTree(treeId) {
+            if (!confirm('Are you sure you want to delete this tree?')) {
+                return;
+            }
+            
+            fetch(`/api/trees/${treeId}/`, {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': document.querySelector('[name=csrfmiddlewaretoken]').value
+                }
+            })
+            .then(response => {
+                if (response.ok) {
+                    loadTrees(); // Reload trees to remove deleted one
+                } else if (response.status === 403) {
+                    alert('You can only delete your own trees.');
+                } else {
+                    alert('Error deleting tree. Please try again.');
+                }
+            })
+            .catch(error => {
+                console.error('Error deleting tree:', error);
+                alert('Error deleting tree. Please try again.');
+            });
+        }
     </script>
 </body>
 </html>
