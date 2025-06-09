@@ -8,7 +8,7 @@ import tempfile
 from django.shortcuts import render
 from .forms import ImageUploadForm
 
-from core.utils.plantnet_utils import get_netplant_response
+from core.utils.plantnet_utils import get_plantnet_response
 
 def map_view(request):
     return render(request, 'trees/map.html')
@@ -56,7 +56,7 @@ def plantnet_upload_view(request):
             organ = form.cleaned_data.get('organs')
 
             try:
-                response = get_netplant_response([image_file], [organ])
+                response = get_plantnet_response([image_file], [organ])
                 if response.status_code == 200:
                     result_data = response.json().get("results", [])
                 else:

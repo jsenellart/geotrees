@@ -23,7 +23,7 @@ def prepare_files(files_in: List[IO]) -> List[Tuple[str, Tuple[str, IO, str]]]:
     return files
 
 
-def get_netplant_response(images : List[IO],
+def get_plantnet_response(images : List[IO],
                           organs_type : List[str] = [])-> requests.Response :
     """function used for getting the entire response of the
     query depending on the given image path"""
