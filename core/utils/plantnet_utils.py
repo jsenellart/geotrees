@@ -1,6 +1,7 @@
 import requests
 import mimetypes
 from typing import List, Tuple, IO
+from datetime import datetime
 from django.conf import settings
 
 def prepare_files(files_in: List[IO]) -> List[Tuple[str, Tuple[str, IO, str]]]:
@@ -27,7 +28,13 @@ def get_plantnet_response(images : List[IO],
                           organs_type : List[str] = [])-> requests.Response :
     """function used for getting the entire response of the
     query depending on the given image path"""
-    return requests.post(settings.PLANTNET_API_URL,
+    return requests.post(settings.PLANTNET_API_IDENTIFY_URL,
             params=settings.PLANTNET_API_PARAMS,
             files=prepare_files(images),
             data={"organs" : organs_type})
+
+def get_plantnet_quota()-> requests.Response:
+    """function used for getting the entire response of the quota query"""
+    return requests.get(settings.PLANTNET_API_QUOTA_URL,
+            params={"api-key": settings.PLANTNET_API_PARAMS.get("api-key"),
+                    "day": datetime.today().strftime('%Y-%m-%d')})

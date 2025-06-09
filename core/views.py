@@ -3,12 +3,10 @@ from core.models import Tree
 from .serializers import TreeGeoSerializer
 from django.contrib.gis.geos import Polygon
 from django.shortcuts import render
-from django.http import JsonResponse
-import tempfile
 from django.shortcuts import render
 from .forms import ImageUploadForm
 
-from core.utils.plantnet_utils import get_plantnet_response
+from core.utils.plantnet_utils import get_plantnet_response, get_plantnet_quota
 
 def map_view(request):
     return render(request, 'trees/map.html')
@@ -44,32 +42,37 @@ def destroy(self, request, *args, **kwargs):
         return super().destroy(request, *args, **kwargs)
 
 
-
 def plantnet_upload_view(request):
-    result_data = None
-    error_message = None
+    form = ImageUploadForm(request.POST or None, request.FILES or None)
+    results = None
+    error   = None
 
-    if request.method == 'POST':
-        form = ImageUploadForm(request.POST, request.FILES)
-        if form.is_valid():
-            image_file = form.cleaned_data['image']
-            organ = form.cleaned_data.get('organs')
-
-            try:
-                response = get_plantnet_response([image_file], [organ])
-                if response.status_code == 200:
-                    result_data = response.json().get("results", [])
-                else:
-                    error_message = f"API Error {response.status_code}: {response.text}"
-            except Exception as e:
-                error_message = str(e)
+    if request.method == 'POST' and form.is_valid():
+        image_files = form.cleaned_data['images']
+        organ       = ["auto" for i in range(len(image_files))]
+        try:
+            resp = get_plantnet_response(image_files, organ)
+            if resp.status_code == 200:
+                results = resp.json().get("results", [])
+            else:
+                error = f"API Error {resp.status_code}: {resp.text}"
+        except Exception as e:
+            error = str(e)
+    try:
+        qr = get_plantnet_quota()
+        if qr.status_code == 200:
+            q = qr.json()
+            used      = q.get("count",    {}).get("identify", "N/A")
+            remaining = q.get("remaining", {}).get("identify", "N/A")
         else:
-            error_message = "Invalid form submission."
-    else:
-        form = ImageUploadForm()
+            used = remaining = "N/A"
+    except Exception:
+        used = remaining = "Error"
 
     return render(request, 'plantnet_upload.html', {
-        'form': form,
-        'results': result_data,
-        'error': error_message
+        'form':            form,
+        'results':         results,
+        'error':           error,
+        'request_count':   used,
+        'remaining_quota': remaining,
     })
