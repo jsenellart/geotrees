@@ -1,0 +1,111 @@
+/* ------------------------------------------------------------
+   Reset & Base
+   ------------------------------------------------------------ */
+body, html {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  font-family: Arial, sans-serif;
+  background-color: #f4f6f8;
+  color: #2c3e50;
+}
+
+.container {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* ------------------------------------------------------------
+   Headings & Typography
+   ------------------------------------------------------------ */
+h1, h2 {
+  color: #2c3e50;
+  margin-bottom: 20px;
+}
+
+p.error {
+  color: #e74c3c;
+  font-weight: bold;
+}
+
+/* ------------------------------------------------------------
+   Form Styling
+   ------------------------------------------------------------ */
+form {
+  margin-bottom: 30px;
+}
+
+form p {
+  margin-bottom: 15px;
+}
+
+input[type="file"],
+select,
+button {
+  width: 100%;
+  padding: 10px;
+  margin-top: 5px;
+  font-size: 1rem;
+  box-sizing: border-box;
+}
+
+button {
+  background-color: #27ae60;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  margin-top: 10px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+button:hover {
+  background-color: #219150;
+}
+
+/* ------------------------------------------------------------
+   Result Styling
+   ------------------------------------------------------------ */
+ul {
+  list-style: none;
+  padding: 0;
+}
+
+li {
+  background: #ecf0f1;
+  padding: 15px;
+  margin-bottom: 15px;
+  border-left: 5px solid #27ae60;
+  border-radius: 4px;
+}
+
+li strong {
+  display: inline-block;
+  width: 150px;
+  color: #34495e;
+}
+
+li img {
+  margin-top: 10px;
+  border-radius: 4px;
+  border: 1px solid #bdc3c7;
+}
+
+/* ------------------------------------------------------------
+   Responsive
+   ------------------------------------------------------------ */
+@media (max-width: 600px) {
+  .container {
+    margin: 20px;
+    padding: 15px;
+  }
+
+  li strong {
+    width: 100%;
+    margin-bottom: 5px;
+  }
+}

@@ -1,0 +1,39 @@
+{% load static %}
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Plant Identifier</title>
+    <link rel="stylesheet" href="{% static 'css/plantnet_style.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Upload a Plant Image</h1>
+
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
+
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            {{ form.as_p }}
+            <button type="submit">Identify</button>
+        </form>
+
+        {% if results %}
+            <h2>Results</h2>
+            <ul>
+                {% for result in results %}
+                    <li>
+                        <strong>Scientific Name:</strong> {{ result.species.scientificName|default:"Unknown" }}<br>
+                        <strong>Common Names:</strong> {{ result.species.commonNames|join:", " }}<br>
+                        <strong>Confidence:</strong> {{ result.score|floatformat:2 }}%<br>
+                        {% if result.images %}
+                            <img src="{{ result.images.0.url.m }}" alt="Plant image" width="200">
+                        {% endif %}
+                    </li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    </div>
+</body>
+</html>
