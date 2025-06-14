@@ -3,7 +3,7 @@
 <html>
 <head>
     <title>GeoTree Map</title>
-    <meta charset="utf-8" />
+    <meta charset="utf-8"/>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <!-- Leaflet CSS -->
@@ -12,26 +12,35 @@
       href="https://unpkg.com/leaflet/dist/leaflet.css"
     />
     <!-- Our External CSS -->
-    <link rel="stylesheet" href="{% static 'css/map.css' %}" />
+    <link rel="stylesheet" href="{% static 'css/map.css' %}"/>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
 </head>
 <body>
-    <div class="topbar">
-        <h1>GeoTree Map</h1>
-        <div class="auth-section">
-            {% if user.is_authenticated %}
-                <button id="addTreeBtn" class="btn btn-add">Add Tree</button>
-                <span class="welcome-text">Welcome, {{ user.username }}!</span>
-                <form method="post" action="{% url 'logout' %}" class="logout-form">
-                    {% csrf_token %}
-                    <button type="submit" class="btn btn-link">Logout</button>
-                </form>
-            {% else %}
-                <a href="{% url 'login' %}" class="btn btn-link">Sign In</a>
-            {% endif %}
-        </div>
+<div class="topbar">
+    <h1>GeoTree Map</h1>
+    <div class="auth-section">
+        {% if user.is_authenticated %}
+        <button id="addTreeBtn" class="btn btn-add">Add Tree</button>
+        <span class="welcome-text">Welcome, {{ user.username }}!</span>
+        <form method="post" action="{% url 'logout' %}" class="logout-form">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-link">Logout</button>
+        </form>
+        {% else %}
+        <a href="{% url 'login' %}" class="btn btn-link">Sign In</a>
+        {% endif %}
     </div>
+</div>
 
+<div>
+<div id="tree-slideout" class="tree-slideout">
+    <button onclick="closeTreeSlideOut()" class="close-btn">×</button>
+    <div id="tree-slideout-content"></div>
+</div>
+<div id="panel" class="panel">
     <div id="map"></div>
+</div>
+</div>
 
     <!-- Expose Django values to JS: -->
     <script>
@@ -43,9 +52,9 @@
         const CSRF_TOKEN = "{{ csrf_token }}";
     </script>
 
-    <!-- Leaflet JS -->
-    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <!-- Our External JS (static file) -->
-    <script src="{% static 'js/map.js' %}"></script>
+<!-- Leaflet JS -->
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<!-- Our External JS (static file) -->
+<script src="{% static 'js/map.js' %}"></script>
 </body>
 </html>
