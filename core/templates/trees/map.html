@@ -2,61 +2,75 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>GeoTree Map</title>
-    <meta charset="utf-8"/>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!-- Leaflet CSS -->
-    <link
-      rel="stylesheet"
-      href="https://unpkg.com/leaflet/dist/leaflet.css"
-    />
-    <!-- Our External CSS -->
-    <link rel="stylesheet" href="{% static 'css/map.css' %}"/>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <link rel="stylesheet" href="{% static 'css/map.css' %}">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/slideout/1.0.1/slideout.min.js"></script>
 </head>
 <body>
-<div class="topbar">
+  <div class="topbar">
     <h1>GeoTree Map</h1>
     <div class="auth-section">
-        {% if user.is_authenticated %}
+      {% if user.is_authenticated %}
         <button id="addTreeBtn" class="btn btn-add">Add Tree</button>
-        <span class="welcome-text">Welcome, {{ user.username }}!</span>
-        <form method="post" action="{% url 'logout' %}" class="logout-form">
-            {% csrf_token %}
-            <button type="submit" class="btn btn-link">Logout</button>
+        <span>Welcome, {{ user.username }}!</span>
+        <form method="post" action="{% url 'logout' %}">
+          {% csrf_token %}
+          <button type="submit">Logout</button>
         </form>
-        {% else %}
-        <a href="{% url 'login' %}" class="btn btn-link">Sign In</a>
-        {% endif %}
+      {% else %}
+        <a href="{% url 'login' %}">Sign In</a>
+      {% endif %}
     </div>
-</div>
+  </div>
 
-<div>
-<div id="tree-slideout" class="tree-slideout">
+  <div id="tree-slideout" class="tree-slideout">
+    <!-- Now calls the global function we set up in MapController -->
     <button onclick="closeTreeSlideOut()" class="close-btn">×</button>
     <div id="tree-slideout-content"></div>
-</div>
-<div id="panel" class="panel">
+  </div>
+
+  <div id="panel">
     <div id="map"></div>
-</div>
-</div>
+  </div>
 
-    <!-- Expose Django values to JS: -->
-    <script>
-        // This must produce a valid JS boolean: true or false
-        const USER_IS_AUTH = {{ user.is_authenticated|yesno:"true,false" }};
-        // If not authenticated, USER_ID becomes null
-        const USER_ID = {{ user.id|default:"null" }};
-        // The raw CSRF token string
-        const CSRF_TOKEN = "{{ csrf_token }}";
+  <!-- Expose Django context to JS -->
+  <script>
+    const USER_IS_AUTH = {{ user.is_authenticated|yesno:"true,false" }};
+    const USER_ID      = {{ user.id|default:"null" }};
+    const CSRF_TOKEN    = "{{ csrf_token }}";
+    const IDENTIFY_FORM_HTML = "{{ form.as_p|escapejs }}";
+  </script>
 
-        const IDENTIFY_FORM_HTML = "{{ form.as_p|escapejs }}";
-    </script>
+  <!-- Leaflet core -->
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
 
-<!-- Leaflet JS -->
-<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-<!-- Our External JS (static file) -->
-<script src="{% static 'js/map.js' %}"></script>
+  <!-- Our modular JS -->
+  <script type="module">
+    import TreeService from "{% static 'js/controllers/TreeService.js' %}";
+    import MapController from "{% static 'js/controllers/MapController.js' %}";
+    import AdjustPositionController from "{% static 'js/controllers/AdjustPositionController.js' %}";
+
+
+    // Instantiate map + wire up globals:
+    const controller = new MapController({
+      mapId:   'map',
+      center:  [48.6984, 2.1870],
+      zoom:    15,
+      tileUrl: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+      maxZoom: 20,
+      addBtn:  document.getElementById('addTreeBtn')
+    });
+
+    // Expose slideout / delete / close helpers globally
+    window.closeTreeSlideOut    = () => controller.slideout.close();
+    window.enableAdjustPosition = id => {
+        controller.adjustPosCtrl.enable(id);
+        };
+    window.deleteTree = id => {
+        TreeService.deleteTree(id).then(() => controller.loadTrees());
+        };
+  </script>
 </body>
 </html>
