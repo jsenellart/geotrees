@@ -13,7 +13,13 @@ function openTreeSlideOut(tree) {
     <p><strong>Public Access:</strong> ${tree.public_accessible}</p>
     <p><strong>Created by:</strong> ${tree.created_by_username}</p>
     <p><strong>Created:</strong> ${new Date(tree.created_at).toLocaleDateString()}</p>
-  `;
+
+    <form method="post" enctype="multipart/form-data" action="/identify/">
+        <input type="hidden" name="csrfmiddlewaretoken" value="${CSRF_TOKEN}">
+        ${IDENTIFY_FORM_HTML}
+        <button type="submit">Identify</button>
+    </form>
+    `;
 
     if (USER_IS_AUTH && tree.created_by === USER_ID) {
         const currentZoom = map.getZoom();
@@ -104,56 +110,6 @@ function closeTreeSlideOut() {
                             });
                         });
                     }
-
-                    /*
-                    let popupContent = `
-                      <strong>Tree ID:</strong> ${feature.id}<br/>
-                      <strong>Public Access:</strong> ${props.public_accessible}<br/>
-                      <strong>Created by:</strong> ${props.created_by_username}<br/>
-                      <strong>Created:</strong> ${new Date(props.created_at).toLocaleDateString()}
-                    `;
-
-                    // If this user owns the tree, show “Adjust” & “Delete”:
-                    if (USER_IS_AUTH && props.created_by === USER_ID) {
-                      const currentZoom = map.getZoom();
-
-                      if (currentZoom >= MIN_ZOOM_FOR_ADD) {
-                        popupContent += `
-                          <br/><br/>
-                          <button
-                            class="popup-btn adjust-enabled"
-                            onclick="enableAdjustPosition('${feature.id}')"
-                          >
-                            Adjust Position
-                          </button>
-                          <button
-                            class="popup-btn delete-btn"
-                            onclick="deleteTree('${feature.id}')"
-                          >
-                            Delete Tree
-                          </button>
-                        `;
-                      } else {
-                        popupContent += `
-                          <br/><br/>
-                          <button
-                            class="popup-btn adjust-disabled"
-                            disabled
-                          >
-                            Zoom to ${MIN_ZOOM_FOR_ADD}+ to adjust
-                          </button>
-                          <button
-                            class="popup-btn delete-btn"
-                            onclick="deleteTree('${feature.id}')"
-                          >
-                            Delete Tree
-                          </button>
-                        `;
-                      }
-                    }
-
-                    layer.bindPopup(popupContent);
-                  }*/
                 }).addTo(treeLayer);
             })
             .catch((err) => {

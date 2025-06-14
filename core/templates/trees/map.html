@@ -50,6 +50,8 @@
         const USER_ID = {{ user.id|default:"null" }};
         // The raw CSRF token string
         const CSRF_TOKEN = "{{ csrf_token }}";
+
+        const IDENTIFY_FORM_HTML = "{{ form.as_p|escapejs }}";
     </script>
 
 <!-- Leaflet JS -->
