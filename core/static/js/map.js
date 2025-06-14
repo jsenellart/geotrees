@@ -109,7 +109,7 @@ function closeTreeSlideOut() {
                                 created_by: props.created_by
                             });
                         });
-                    }
+
                 }).addTo(treeLayer);
             })
             .catch((err) => {
