@@ -30,7 +30,7 @@
           <li>
             <strong>Scientific Name:</strong> {{ result.species.scientificName|default:"Unknown" }}<br>
             <strong>Common Names:</strong> {{ result.species.commonNames|join:", " }}<br>
-            <strong>Confidence:</strong> {{ result.score|floatformat:2 }}%<br>
+            <strong>Confidence:</strong> {{ result.score*100|floatformat:0 }}%<br>
             {% if result.images %}
               <img src="{{ result.images.0.url.m }}" alt="" width="200">
             {% endif %}
